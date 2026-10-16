@@ -1,4 +1,9 @@
-<h1 align="center">TillerTouch</h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png">
+    <img src=".github/assets/banner.png" alt="TillerTouch" width="100%">
+  </picture>
+</p>
 
 <p align="center">
   <a href="https://code.claude.com/docs/en/plugins"><img src="https://img.shields.io/badge/Claude%20Code-Plugin-D97757?style=for-the-badge&logoColor=white" alt="Claude Code plugin" height="36"></a>&nbsp;
