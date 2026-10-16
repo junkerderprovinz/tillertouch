@@ -1,0 +1,14 @@
+{
+  "name": "tillertouch",
+  "version": "0.1.0",
+  "description": "A second look at every reply. Sends it back once when it names a gap without a way to close it, asks for approval without showing what to approve, or skips a clearly better way. Reminds each prompt to look for a better tool first.",
+  "author": {
+    "name": "junkerderprovinz",
+    "url": "https://github.com/junkerderprovinz"
+  },
+  "homepage": "https://github.com/junkerderprovinz/tillertouch",
+  "repository": "https://github.com/junkerderprovinz/tillertouch",
+  "license": "AGPL-3.0-only",
+  "keywords": ["hooks", "review", "stop-hook", "workflow"],
+  "hooks": "./codex/hooks.json"
+}

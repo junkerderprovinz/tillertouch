@@ -1,0 +1,28 @@
+{
+  "description": "TillerTouch for Codex CLI: a nudge toward a better route on each prompt, and a second look at each reply before the turn ends.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/tillertouch.mjs\" nudge",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/tillertouch.mjs\" judge codex",
+            "timeout": 120,
+            "statusMessage": "TillerTouch is reading the reply"
+          }
+        ]
+      }
+    ]
+  }
+}
