@@ -1,0 +1,17 @@
+{
+  "name": "tillertouch",
+  "version": "0.1.0",
+  "description": "A second look at every reply before the turn ends, and a nudge toward a better tool on every prompt.",
+  "settings": [
+    {
+      "name": "Prompt note",
+      "description": "Set to false to stop adding the note that asks for a better method, tool or helper on every prompt.",
+      "envVar": "TILLERTOUCH_PROMPT_NUDGE"
+    },
+    {
+      "name": "Prompt note wording",
+      "description": "Replaces the wording of the note. Leave empty to keep the default.",
+      "envVar": "TILLERTOUCH_PROMPT_NUDGE_TEXT"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "name": "tillertouch-nudge",
+            "type": "command",
+            "command": "node \"${extensionPath}${/}scripts${/}tillertouch.mjs\" nudge --json",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "name": "tillertouch-judge",
+            "type": "command",
+            "command": "node \"${extensionPath}${/}scripts${/}tillertouch.mjs\" judge gemini",
+            "timeout": 120000
+          }
+        ]
+      }
+    ]
+  }
+}
