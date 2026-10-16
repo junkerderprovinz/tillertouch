@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${DROID_PLUGIN_ROOT}/scripts/tillertouch.mjs\" nudge",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${DROID_PLUGIN_ROOT}/scripts/tillertouch.mjs\" judge droid",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

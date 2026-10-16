@@ -1,0 +1,12 @@
+{
+  "name": "tillertouch",
+  "version": "0.1.0",
+  "description": "A second look at every reply before the turn ends, and a nudge toward a better tool on every prompt.",
+  "author": {
+    "name": "junkerderprovinz",
+    "url": "https://github.com/junkerderprovinz"
+  },
+  "homepage": "https://github.com/junkerderprovinz/tillertouch",
+  "repository": "https://github.com/junkerderprovinz/tillertouch",
+  "license": "AGPL-3.0-only"
+}

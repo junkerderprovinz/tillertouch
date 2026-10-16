@@ -1,0 +1,15 @@
+{
+  "name": "tillertouch",
+  "description": "TillerTouch for Factory Droid, a plugin that keeps replies on course.",
+  "owner": {
+    "name": "junkerderprovinz",
+    "url": "https://github.com/junkerderprovinz"
+  },
+  "plugins": [
+    {
+      "name": "tillertouch",
+      "source": "./factory",
+      "description": "A second look at every reply before the turn ends, and a nudge toward a better tool on every prompt."
+    }
+  ]
+}
