@@ -39,12 +39,13 @@ The name comes from sailing: a light touch on the tiller is enough to bring the 
 1. [What it does](#1-what-it-does)
 2. [The three checks](#2-the-three-checks)
 3. [Install](#3-install)
-4. [Configuration](#4-configuration)
-5. [Cost](#5-cost)
-6. [Limits](#6-limits)
-7. [Testing](#7-testing)
-8. [How AI is used here](#8-how-ai-is-used-here)
-9. [Support this project](#9-support-this-project)
+4. [Codex CLI, Gemini CLI, Qwen Code and Factory Droid](#4-codex-cli-gemini-cli-qwen-code-and-factory-droid)
+5. [Configuration](#5-configuration)
+6. [Cost](#6-cost)
+7. [Limits](#7-limits)
+8. [Testing](#8-testing)
+9. [How AI is used here](#9-how-ai-is-used-here)
+10. [Support this project](#10-support-this-project)
 
 <br>
 
@@ -97,7 +98,9 @@ task, but the reply does not mention it. Matters of taste do not count.
 
 Sent back with: *TillerTouch (better way): `gofmt -w .` does this in one command and is the obvious tool. Say so.*
 
-The full prompt is in [`hooks/hooks.json`](hooks/hooks.json).
+The full prompt is in [`hooks/judge-prompt.txt`](hooks/judge-prompt.txt). Claude Code's prompt hook cannot read
+a file, so `node scripts/sync.mjs` writes it into [`hooks/hooks.json`](hooks/hooks.json) and copies it into the
+packages for the other tools.
 
 <br>
 
@@ -122,7 +125,97 @@ To try it without installing, clone the repository and start Claude Code with `c
 
 <br>
 
-## 4. Configuration
+## 4. Codex CLI, Gemini CLI, Qwen Code and Factory Droid
+
+TillerTouch runs in these four as well, with the same note on every prompt and the same three checks from the
+same prompt file. How the check gets made differs.
+
+Qwen Code runs prompt hooks the way Claude Code does, so it takes the Claude Code plugin as it is. Codex CLI,
+Gemini CLI and Factory Droid cannot run prompt hooks. For them,
+[`scripts/tillertouch.mjs`](scripts/tillertouch.mjs) starts a second, headless run of the same CLI with a small
+model, hands it the reply together with the check's prompt, and sends the reply back if the answer says so. That needs Node.js 18 or
+newer on the path. If the second run fails, takes longer than 90 seconds or answers something the script cannot
+read, the reply goes through.
+
+| Tool | Check at the end of the turn | Model for the check | How far it is tested |
+| :- | :- | :- | :- |
+| Claude Code | prompt hook | Haiku, through Claude Code | live, with the samples |
+| Qwen Code | prompt hook | the model of your session | end to end against a stand-in model server |
+| Codex CLI | `codex exec` in the hook | `gpt-6-luna`, low reasoning effort | end to end against a stand-in model server |
+| Gemini CLI | `gemini -p` in the hook | `flash-lite` | end to end against a stand-in model server |
+| Factory Droid | `droid exec` in the hook | `claude-haiku-5-5` | install, and the script offline |
+
+The stand-in server answered like a model would, so these runs prove the hooks load, the note arrives, a reply goes
+back and the turn continues. They say nothing about how well each tool's model judges. For Codex, Gemini and Droid
+the second run sees only the reply (and in Gemini also your prompt), not the whole conversation.
+
+### Codex CLI
+
+```sh
+codex plugin marketplace add junkerderprovinz/tillertouch
+codex plugin add tillertouch@tillertouch
+```
+
+Codex reads the same marketplace file as Claude Code and takes its hooks from [`codex/hooks.json`](codex/hooks.json).
+It runs no plugin hook until you trust it, so open `/hooks` once and trust both. `codex exec` needs that trust as
+well, or `--dangerously-bypass-hook-trust` for a run you have vetted yourself. The second run uses your Codex login,
+a read-only sandbox and no hooks. On Windows, Codex ran the hook commands in Git Bash during testing. I have not
+tried it on a machine without Git Bash.
+
+### Gemini CLI
+
+Gemini CLI installs an extension from the root of a repository, and the root here belongs to the Claude Code
+plugin. The extension lives in [`gemini/`](gemini) and installs from a clone:
+
+```sh
+git clone https://github.com/junkerderprovinz/tillertouch
+gemini extensions install ./tillertouch/gemini
+```
+
+The note goes in on `BeforeAgent` and the check runs on `AfterAgent`. A reply that goes back shows as `Agent
+execution blocked: TillerTouch (...)`, and Gemini tries again with the reason. The second run loads no extensions,
+stays in plan mode and skips the folder trust check, since it runs in an empty temporary folder.
+`gemini extensions config tillertouch` switches the note off or changes its wording.
+
+### Qwen Code
+
+```sh
+qwen extensions install https://github.com/junkerderprovinz/tillertouch:tillertouch
+```
+
+Qwen converts the Claude Code plugin into an extension and runs both hooks unchanged. The check uses the model of
+your session: the hook file is shared with Claude Code, so it cannot name a Qwen model. Qwen has no plugin options,
+so the note follows the environment variables below.
+
+### Factory Droid
+
+```sh
+droid plugin marketplace add https://github.com/junkerderprovinz/tillertouch
+droid plugin install tillertouch@tillertouch --scope user
+```
+
+Droid reads [`.factory-plugin/marketplace.json`](.factory-plugin/marketplace.json), which points at
+[`factory/`](factory). Its `Stop` hook gets no reply text, only the path to the session transcript, so the script
+takes the last assistant message from that file. Factory does not document the transcript format, and `droid exec`
+needs a Factory login, which the tests so far did not have, so this is the least tested of the five. If the script
+finds no reply, it lets the turn end.
+
+### Settings for the other tools
+
+| Variable | What it does |
+| :- | :- |
+| `TILLERTOUCH_PROMPT_NUDGE` | `false` stops the note on every prompt. |
+| `TILLERTOUCH_PROMPT_NUDGE_TEXT` | Replaces the wording of the note. |
+| `TILLERTOUCH_MODEL` | Uses another model for the second run. |
+| `TILLERTOUCH_TIMEOUT` | Seconds the second run may take, 90 by default. |
+| `TILLERTOUCH_DEBUG` | Writes to stderr why a reply went through, so a failed check can be told from a passed one. |
+
+The packages for Gemini and Droid install as their own folders, so they carry copies of the shared files.
+`node scripts/sync.mjs` refreshes them, and the tests fail when a copy is out of date.
+
+<br>
+
+## 5. Configuration
 
 The prompt note has two options. Change them with `/plugin configure tillertouch@tillertouch`, or in `/config`,
 where every enabled plugin lists its options. Until you set them, the defaults apply.
@@ -152,7 +245,7 @@ cannot turn off a single plugin hook, so `/plugin` is the way to pause it.
 
 <br>
 
-## 5. Cost
+## 6. Cost
 
 The note on each prompt costs no model call, only about 80 tokens of context.
 
@@ -161,9 +254,14 @@ Code uses the one it runs background work on, which is Haiku today. The call rea
 along with the reply, so it grows with the session. In a short session one check came to about 1,200 input tokens,
 well under a cent at list price. A reply that goes back adds one follow-up from your main model.
 
+In Codex CLI, Gemini CLI and Factory Droid the check is a second headless run on the small model from the table
+in [section 4](#4-codex-cli-gemini-cli-qwen-code-and-factory-droid), billed to the same account as the session.
+It sends only the check's prompt and the reply, so it stays small. Qwen Code makes the check on the model of your
+session, which usually costs more than a small one would.
+
 <br>
 
-## 6. Limits
+## 7. Limits
 
 - Claude Code shows a reply while it is being written, so the check cannot hold it back. You see the reply first
   and the follow-up right after it, in the same turn.
@@ -175,10 +273,12 @@ well under a cent at list price. A reply that goes back adds one follow-up from 
 - There is no hook after edits. One that looks at larger edits and suggests a missing test or a simpler way sounded
   useful, but a prompt hook on `PostToolUse` cannot be limited to large changes or switched off by a setting. It
   would cost a model call and a wait on every edit, small ones included, so I left it out.
+- In Codex CLI, Gemini CLI and Factory Droid the check starts the same CLI a second time, and that start-up comes
+  on top of the model call. You wait for both at the end of every turn.
 
 <br>
 
-## 7. Testing
+## 8. Testing
 
 [`test/run.mjs`](test/run.mjs) starts a headless Claude Code session per sample in
 [`test/samples.json`](test/samples.json), with TillerTouch loaded and your own settings and hooks left out. The
@@ -186,19 +286,27 @@ session repeats the sample as its reply, the check runs on it, and the script pr
 the follow-up. It also checks that the prompt note is added, can be switched off and can be reworded.
 
 ```sh
-node test/run.mjs                  # every sample and the prompt note checks
-node test/run.mjs gap approval     # only these samples
+node test/run.mjs                  # offline checks, then every tool on the path
+node test/run.mjs claude gap       # only Claude Code, only the gap sample
+node test/run.mjs offline          # no model at all
 ```
 
 It needs Node.js and a logged-in `claude` on the path (`CLAUDE_BIN` points it elsewhere). Each sample is one short
 session on Haiku plus the check, so a full run costs a few cents and takes about a minute.
 
+Before that, the offline checks run the script for the other tools against
+[`test/fake-cli.mjs`](test/fake-cli.mjs), a stand-in for `codex`, `gemini` and `droid`: a reply goes back, a pass
+or a broken answer lets it through, a slow judge times out, a reply is never judged twice, and the second run gets
+the small model and has its own hooks off. They also check that every copy matches the shared files and that each
+hook file uses only its own tool's event names. When `codex`, `gemini` or `droid` is on the path, the samples then
+run through the script with the real CLI and your login for it.
+
 <br>
 
-## 8. How AI is used here
+## 9. How AI is used here
 
-TillerTouch is built on a model: every check at the end of a turn is a call to one, made by Claude Code on your
-account. That is the point of the plugin, and it is why the [cost](#5-cost) section exists.
+TillerTouch is built on a model: every check at the end of a turn is a call to one, made by Claude Code, or by
+the other tool you run it in, on your account. That is the point of the plugin, and it is why the [cost](#6-cost) section exists.
 
 The code and this README were also written with help from an AI assistant, the same way I work with an editor or a
 compiler. I read and understand everything before it ships, and if something here is wrong, that is on me. If you
@@ -206,7 +314,7 @@ find something that is not right, open an issue and I will look at it.
 
 <br>
 
-## 9. Support this project
+## 10. Support this project
 
 Bugs, ideas or feature requests? Please [open a GitHub issue](https://github.com/junkerderprovinz/tillertouch/issues).
 
