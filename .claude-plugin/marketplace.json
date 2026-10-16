@@ -1,6 +1,6 @@
 {
   "name": "tillertouch",
-  "description": "TillerTouch, a Claude Code plugin that keeps replies on course.",
+  "description": "TillerTouch, a plugin that keeps your coding assistant's replies on course.",
   "owner": {
     "name": "junkerderprovinz",
     "url": "https://github.com/junkerderprovinz"

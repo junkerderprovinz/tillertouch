@@ -6,18 +6,18 @@
 </p>
 
 <p align="center">
-  <a href="https://code.claude.com/docs/en/plugins"><img src="https://img.shields.io/badge/Claude%20Code-Plugin-D97757?style=for-the-badge&logoColor=white" alt="Claude Code plugin" height="36"></a>&nbsp;
+  <a href="#3-install"><img src="https://img.shields.io/badge/Plugin-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Gemini%20%C2%B7%20Qwen%20%C2%B7%20Droid-D97757?style=for-the-badge" alt="Plugin for Claude Code, Codex CLI, Gemini CLI, Qwen Code and Factory Droid" height="36"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge&logo=gnu&logoColor=white" alt="License: AGPL-3.0" height="36"></a>
 </p>
 
 <br>
 
 <p align="center">
-A <b>second look</b> at your coding assistant's replies, for <a href="https://code.claude.com/docs/en/overview">Claude Code</a>.<br>
+A <b>second look</b> at your coding assistant's replies.<br>
 <br>
 Before a turn ends, a small model reads the final reply. If the reply names a gap and leaves it open, asks you to
 approve something it never showed you, or walks past a clearly better tool, TillerTouch sends it back once with a
-one-line note and Claude adds what was missing. Everything else goes through untouched.<br>
+one-line note and the assistant adds what was missing. Everything else goes through untouched.<br>
 <br>
 The name comes from sailing: a light touch on the tiller is enough to bring the boat back on course.
 </p>
@@ -51,7 +51,8 @@ The name comes from sailing: a light touch on the tiller is enough to bring the 
 
 ## 1. What it does
 
-TillerTouch adds two hooks to Claude Code.
+TillerTouch adds two hooks to your coding assistant. This section and the next two describe them in Claude Code;
+[section 4](#4-codex-cli-gemini-cli-qwen-code-and-factory-droid) covers the other tools.
 
 On every prompt it adds a short note to the context: before taking the obvious route, check whether a better
 method, a fitting tool, an installed skill, plugin or MCP server, or a helper that already exists in the project
@@ -71,7 +72,7 @@ back once in a turn always passes, so a single reply is never sent back twice.
 ### A gap with no way to close it
 
 The reply says something is untested, missing, never ran, unknown or not verified, and stops there. It passes as
-soon as it names a test, a fix, or a plan with a recommendation, or says Claude does it now. It also passes when it
+soon as it names a test, a fix, or a plan with a recommendation, or says the assistant does it now. It also passes when it
 explains why the gap cannot be closed from here and tells you the next step.
 
 > I added retry logic to the upload client. The timeout path is untested and I have not verified it against the real server.
