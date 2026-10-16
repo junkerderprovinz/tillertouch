@@ -1,0 +1,2 @@
+# The hook script runs under sh on every platform, so a CRLF checkout would break it.
+* text=auto eol=lf

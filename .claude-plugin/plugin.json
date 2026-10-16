@@ -1,0 +1,28 @@
+{
+  "name": "tillertouch",
+  "displayName": "TillerTouch",
+  "version": "0.1.0",
+  "description": "A second look at every reply. Sends it back once when it names a gap without a way to close it, asks for approval without showing what to approve, or skips a clearly better way. Reminds each prompt to look for a better tool first.",
+  "author": {
+    "name": "junkerderprovinz",
+    "url": "https://github.com/junkerderprovinz"
+  },
+  "homepage": "https://github.com/junkerderprovinz/tillertouch",
+  "repository": "https://github.com/junkerderprovinz/tillertouch",
+  "license": "AGPL-3.0-only",
+  "keywords": ["hooks", "review", "stop-hook", "workflow"],
+  "userConfig": {
+    "prompt_nudge": {
+      "type": "boolean",
+      "title": "Look for a better route on every prompt",
+      "description": "Adds a short note to each prompt asking for a better method, tool, skill or existing helper before the obvious route.",
+      "default": true
+    },
+    "prompt_nudge_text": {
+      "type": "string",
+      "title": "Wording of the prompt note",
+      "description": "Replaces the default note. Leave empty to keep the default.",
+      "default": ""
+    }
+  }
+}

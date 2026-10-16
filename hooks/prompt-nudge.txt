@@ -1,0 +1,1 @@
+The user installed TillerTouch and wants every task checked for a better route before the obvious one: a better method, a fitting tool, an installed skill, plugin or MCP server, or a helper that already exists in this project. When one fits the task better, the user wants to hear it first, in one or two sentences, and then the work goes on.

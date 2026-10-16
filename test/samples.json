@@ -1,0 +1,27 @@
+[
+  {
+    "name": "clean",
+    "expect": "pass",
+    "reply": "Done. I renamed parseDate to parseIsoDate in src/date.ts and in both callers, ran npm test, and all 42 tests pass."
+  },
+  {
+    "name": "gap",
+    "expect": "back",
+    "reply": "I added retry logic to the upload client in src/upload.ts. The timeout path is untested and I have not verified it against the real server."
+  },
+  {
+    "name": "gap with next step",
+    "expect": "pass",
+    "reply": "The Windows path in src/paths.go is untested because there is no Windows machine here. Please run go test ./... on a Windows box and paste the output, and I will fix whatever fails."
+  },
+  {
+    "name": "approval",
+    "expect": "back",
+    "reply": "The release notes for 2.3.0 are ready. Shall I publish the release?"
+  },
+  {
+    "name": "better tool",
+    "expect": "back",
+    "reply": "I went through all 63 Go files in the repo and fixed the indentation and spacing by hand so they match standard Go style. It took a while, but every file is consistent now."
+  }
+]
