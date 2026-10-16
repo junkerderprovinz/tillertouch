@@ -56,16 +56,24 @@ function session(prompt, settings) {
     args.push("--settings", settingsFile);
   }
   const run = spawnClaude(args, { cwd: dir, input: prompt, encoding: "utf8", timeout: 180_000 });
-  const events = run.stdout
-    .split("\n")
-    .filter((line) => line.startsWith("{"))
-    .map((line) => JSON.parse(line));
   const debug = existsSync(debugFile) ? readFileSync(debugFile, "utf8") : "";
   rmSync(dir, { recursive: true, force: true });
+  if (run.error) throw new Error(`could not run ${claude}: ${run.error.message}`);
+  const events = run.stdout.split("\n").flatMap(parseEvent);
   if (run.status !== 0 && events.length === 0) {
-    throw new Error(`claude exited with ${run.status}: ${run.stderr || run.error}`);
+    throw new Error(`claude exited with ${run.status}: ${run.stderr}`);
   }
   return { events, debug };
+}
+
+// A run killed by the timeout can end on a half-written line.
+function parseEvent(line) {
+  if (!line.startsWith("{")) return [];
+  try {
+    return [JSON.parse(line)];
+  } catch {
+    return [];
+  }
 }
 
 function decision(debug) {

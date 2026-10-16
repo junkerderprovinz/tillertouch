@@ -119,8 +119,8 @@ To try it without installing, clone the repository and start Claude Code with `c
 
 ## 4. Configuration
 
-The prompt note has two options. Change them in `/config`, where every enabled plugin lists its options, or in
-the dialog Claude Code shows when the plugin is enabled.
+The prompt note has two options. Change them with `/plugin configure tillertouch@tillertouch`, or in `/config`,
+where every enabled plugin lists its options. Until you set them, the defaults apply.
 
 | Option | Default | What it does |
 | :- | :- | :- |
