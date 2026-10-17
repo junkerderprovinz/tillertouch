@@ -1,7 +1,7 @@
 {
   "name": "tillertouch",
   "displayName": "TillerTouch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A second look at every tool call and every reply, always or only when you write TT. Sends one back once when it skips a clearly better way, names a gap without a way to close it, or asks for approval without showing what to approve. Reminds each prompt to look for a better tool first.",
   "author": {
     "name": "junkerderprovinz",
