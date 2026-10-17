@@ -1,6 +1,5 @@
 // Copies the shared files into the packages that install as their own directory
-// (Gemini CLI and Factory Droid copy only that directory), and writes the judge
-// prompt into Claude Code's hooks.json, whose prompt hook cannot read a file.
+// (Gemini CLI and Factory Droid copy only that directory).
 //
 //   node scripts/sync.mjs           write the copies
 //   node scripts/sync.mjs --check   exit 1 when a copy is out of date
@@ -10,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const shared = ["scripts/tillertouch.mjs", "hooks/judge-prompt.txt", "hooks/prompt-nudge.txt"];
+const shared = ["scripts/tillertouch.mjs", "hooks/judge-prompt.txt", "hooks/tool-prompt.txt", "hooks/prompt-nudge.txt"];
 const packages = ["gemini", "factory"];
 const check = process.argv.includes("--check");
 
@@ -19,9 +18,6 @@ const wanted = new Map();
 for (const pkg of packages) {
   for (const file of shared) wanted.set(`${pkg}/${file}`, read(file));
 }
-const claudeHooks = JSON.parse(read("hooks/hooks.json"));
-claudeHooks.hooks.Stop[0].hooks[0].prompt = read("hooks/judge-prompt.txt").trimEnd();
-wanted.set("hooks/hooks.json", `${JSON.stringify(claudeHooks, null, 2)}\n`);
 
 const stale = [];
 for (const [path, content] of wanted) {

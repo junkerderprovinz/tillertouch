@@ -39,7 +39,8 @@ function session(prompt, settings) {
     writeFileSync(settingsFile, JSON.stringify(settings));
     args.push("--settings", settingsFile);
   }
-  const run = spawnTool(claude, args, { cwd: dir, input: prompt, timeout: 180_000 });
+  const env = { ...process.env, TILLERTOUCH_MODE: "permanent", TILLERTOUCH_MODEL: "haiku", TILLERTOUCH_DEBUG: "1" };
+  const run = spawnTool(claude, args, { cwd: dir, input: prompt, timeout: 180_000, env });
   const debug = existsSync(debugFile) ? readFileSync(debugFile, "utf8") : "";
   rmSync(dir, { recursive: true, force: true });
   if (run.error) throw new Error(`could not run ${claude}: ${run.error.message}`);
@@ -60,9 +61,11 @@ function parseEvent(line) {
   }
 }
 
-function decision(debug) {
-  const match = debug.match(/Hooks: Model response: (.*)$/m);
-  if (!match) return { ok: undefined, reason: "no Stop decision in the debug log" };
+function decision(events) {
+  const stop = events.filter((e) => e.subtype === "hook_response" && e.hook_event === "Stop");
+  const text = stop.map((e) => `${e.stderr ?? ""}\n${e.output ?? ""}`).join("\n");
+  const match = text.match(/verdict (\{.*\})/);
+  if (!match) return { ok: undefined, reason: "no Stop decision in the hook output" };
   try {
     return JSON.parse(match[1]);
   } catch {
@@ -86,9 +89,9 @@ const withOptions = (options) => ({ pluginConfigs: { "tillertouch@inline": { opt
 export function claudeSuite(chosen, noteChecks) {
   let firstNote;
   for (const sample of chosen) {
-    const { events, debug } = session(`<reply>\n${sample.reply}\n</reply>`);
+    const { events } = session(`<reply>\n${sample.reply}\n</reply>`);
     firstNote ??= promptNote(events);
-    const d = decision(debug);
+    const d = decision(events);
     const got = d.ok === true ? "pass" : d.ok === false ? "back" : "error";
     const details = [`expected ${sample.expect}, got ${got}`];
     if (d.reason) details.push(`reason: ${d.reason}`);

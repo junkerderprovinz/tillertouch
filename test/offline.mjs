@@ -21,20 +21,21 @@ writeFileSync(transcript, [
 ].map((entry) => JSON.stringify(entry)).join("\n"));
 
 const inputs = {
+  claude: { hook_event_name: "Stop", session_id: "offline-claude", last_assistant_message: reply, stop_hook_active: false },
   codex: { hook_event_name: "Stop", last_assistant_message: reply, stop_hook_active: false },
   gemini: { hook_event_name: "AfterAgent", prompt: "Add retries to the upload client.", prompt_response: reply, stop_hook_active: false },
   droid: { hook_event_name: "Stop", transcript_path: transcript, stop_hook_active: false },
 };
-const blocks = { codex: "block", gemini: "deny", droid: "block" };
-const passes = { codex: "", gemini: "{}", droid: "" };
-const models = { codex: "gpt-6-luna", gemini: "flash-lite", droid: "claude-haiku-5-5" };
+const blocks = { claude: "block", codex: "block", gemini: "deny", droid: "block" };
+const passes = { claude: "", codex: "", gemini: "{}", droid: "" };
+const models = { claude: "opus", codex: "gpt-6-luna", gemini: "flash-lite", droid: "claude-haiku-5-5" };
 
 function hook(args, input, env = {}) {
   rmSync(log, { force: true });
   const run = spawnSync(process.execPath, [script, ...args], {
     input: JSON.stringify(input),
     encoding: "utf8",
-    env: { ...process.env, TILLERTOUCH_CLI: join(root, "test", "fake-cli.mjs"), FAKE_LOG: log, ...env },
+    env: { ...process.env, TMPDIR: dir, TEMP: dir, TMP: dir, TILLERTOUCH_CLI: join(root, "test", "fake-cli.mjs"), FAKE_LOG: log, ...env },
   });
   const call = existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : undefined;
   return { out: run.stdout, call };
@@ -84,6 +85,34 @@ export function offlineSuite() {
   report(droidPrompt.includes(reply) && !droidPrompt.includes("Looking at the client first"),
     "droid: the reply comes from the last assistant line of the transcript");
 
+  const toolCall = { hook_event_name: "PreToolUse", session_id: "offline-call", tool_name: "Bash", tool_input: { command: "sed -n 's/.*version.*/x/p' package.json" } };
+  const denied = JSON.parse(hook(["judge", "claude"], toolCall, { FAKE_MODE: "block" }).out || "{}");
+  report(denied.hookSpecificOutput?.permissionDecision === "deny" && denied.hookSpecificOutput.permissionDecisionReason.startsWith("TillerTouch"),
+    "claude: a tool call the judge rejects is denied");
+  const callPrompt = hook(["judge", "claude"], { ...toolCall, session_id: "offline-call-prompt" }).call?.prompt ?? "";
+  report(callPrompt.includes("package.json") && !callPrompt.includes("$ARGUMENTS"), "claude: the judge gets the tool call");
+  const again = hook(["judge", "claude"], toolCall, { FAKE_MODE: "block" });
+  report(!again.call && again.out === "", "claude: a call sent back once goes through the second time");
+  report(hook(["judge", "claude"], { ...toolCall, session_id: "offline-pass" }, { FAKE_MODE: "pass" }).out === "", "claude: a tool call the judge accepts goes through");
+  report(hook(["judge", "codex"], toolCall, { FAKE_MODE: "block" }).out === "", "codex: tool calls are not judged");
+
+  const demand = { TILLERTOUCH_MODE: "demand" };
+  const quiet = { ...inputs.claude, session_id: "offline-demand" };
+  hook(["nudge"], { session_id: "offline-demand", prompt: "Add retries to the upload client." }, demand);
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: a prompt without TT is not judged");
+  hook(["nudge"], { session_id: "offline-demand", prompt: "Add retries, TT" }, demand);
+  const asked = hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" });
+  report(asked.call && asked.out.includes("block"), "demand: a prompt with TT is judged");
+  report(asked.call?.prompt.includes("Add retries, TT"), "demand: the judge gets the prompt that asked for it");
+  hook(["nudge"], { session_id: "offline-demand", prompt: "Now the tests." }, demand);
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: the next prompt without TT is not judged");
+  hook(["nudge"], { session_id: "offline-demand", prompt: "Switch the ATTIC off, STT is fine" }, demand);
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: TT inside another word does not count");
+  report(hook(["judge", "claude"], { ...quiet, session_id: "offline-never" }, { ...demand, FAKE_MODE: "block" }).call === undefined,
+    "demand: a session that never wrote TT is not judged");
+  report(Boolean(hook(["judge", "claude"], { ...quiet, session_id: "offline-never" }, { TILLERTOUCH_MODE: "permanent", FAKE_MODE: "block" }).call),
+    "permanent: every reply is judged");
+
   const text = hook(["nudge"], {}).out.trim();
   report(text === note, "nudge: prints the default note");
   const json = JSON.parse(hook(["nudge", "--json"], {}).out || "{}");
@@ -99,7 +128,8 @@ export function offlineSuite() {
 
   const events = (path) => Object.keys(JSON.parse(readFileSync(join(root, path), "utf8")).hooks).sort().join(",");
   for (const path of ["hooks/hooks.json", "codex/hooks.json", "factory/hooks/hooks.json"]) {
-    report(events(path) === "Stop,UserPromptSubmit", `${path}: only UserPromptSubmit and Stop`);
+    report(events(path) === (path === "hooks/hooks.json" ? "PreToolUse,Stop,UserPromptSubmit" : "Stop,UserPromptSubmit"),
+      `${path}: only its own events`);
   }
   report(events("gemini/hooks/hooks.json") === "AfterAgent,BeforeAgent", "gemini/hooks/hooks.json: only BeforeAgent and AfterAgent");
 

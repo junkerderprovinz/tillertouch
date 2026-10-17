@@ -2,7 +2,7 @@
   "name": "tillertouch",
   "displayName": "TillerTouch",
   "version": "1.0.0",
-  "description": "A second look at every reply. Sends it back once when it names a gap without a way to close it, asks for approval without showing what to approve, or skips a clearly better way. Reminds each prompt to look for a better tool first.",
+  "description": "A second look at every tool call and every reply, always or only when you write TT. Sends one back once when it skips a clearly better way, names a gap without a way to close it, or asks for approval without showing what to approve. Reminds each prompt to look for a better tool first.",
   "author": {
     "name": "junkerderprovinz",
     "url": "https://github.com/junkerderprovinz"
@@ -12,6 +12,18 @@
   "license": "AGPL-3.0-only",
   "keywords": ["hooks", "review", "stop-hook", "workflow"],
   "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "When the second look runs",
+      "description": "demand checks the tool calls and the reply only in a turn whose prompt contains TT. permanent checks every call and every reply.",
+      "default": "demand"
+    },
+    "model": {
+      "type": "string",
+      "title": "Model for the second look",
+      "description": "The model that judges the calls and the reply, for example opus, sonnet or haiku. A smaller one is faster and cheaper but misses more.",
+      "default": "opus"
+    },
     "prompt_nudge": {
       "type": "boolean",
       "title": "Look for a better route on every prompt",

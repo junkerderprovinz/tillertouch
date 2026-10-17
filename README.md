@@ -13,11 +13,12 @@
 <br>
 
 <p align="center">
-A <b>second look</b> at your coding assistant's replies.<br>
+A <b>second look</b> at your coding assistant's tool calls and replies.<br>
 <br>
-Before a turn ends, a small model reads the final reply. If the reply names a gap and leaves it open, asks you to
-approve something it never showed you, or walks past a clearly better tool, TillerTouch sends it back once with a
-one-line note and the assistant adds what was missing. Everything else goes through untouched.<br>
+Before a tool call runs and before a turn ends, a model looks at it. If the call walks past a clearly better tool, or
+the reply names a gap and leaves it open, asks you to approve something it never showed you, or skips a better
+way, TillerTouch sends it back once with a one-line note and the assistant fixes it. Everything else goes through
+untouched. It runs on every turn, or only when you write <b>TT</b> in your message.<br>
 <br>
 The name comes from sailing: a light touch on the tiller is enough to bring the boat back on course.
 </p>
@@ -51,7 +52,7 @@ The name comes from sailing: a light touch on the tiller is enough to bring the 
 
 ## 1. What it does
 
-TillerTouch adds two hooks to your coding assistant. This section and the next two describe them in Claude Code;
+TillerTouch adds three hooks to your coding assistant. This section and the next two describe them in Claude Code;
 [section 4](#4-codex-cli-gemini-cli-qwen-code-and-factory-droid) covers the other tools.
 
 On every prompt it adds a short note to the context: before taking the obvious route, check whether a better
@@ -60,10 +61,19 @@ would do the job better, and if so, say it first in a sentence or two. This part
 second call on every prompt would add a wait and a bill, and only the main session knows which skills, plugins and
 tools are installed, so the main session is the one that has to look.
 
-When a turn ends, a [prompt hook](https://code.claude.com/docs/en/hooks#prompt-based-hooks) on the `Stop` event
-reads the final reply and decides whether it can stand. If one of the three checks below fails, the reply goes back
-to Claude with the reason, and Claude continues the same turn with a short follow-up. A reply that already went
-back once in a turn always passes, so a single reply is never sent back twice.
+Before each tool call, a command hook on the `PreToolUse` event asks a model whether a clearly better way exists
+for that call, for example a formatter instead of hand edits, or a JSON parser instead of a regular expression. If
+so, the call is denied with the reason, and Claude either uses the better way or says why not and repeats the call.
+A call that was sent back once always goes through the second time.
+
+When a turn ends, a command hook on the `Stop` event reads the final reply and decides whether it can stand. If one
+of the three checks below fails, the reply goes back to Claude with the reason, and Claude continues the same turn
+with a short follow-up. A reply that already went back once in a turn always passes, so a single reply is never
+sent back twice.
+
+Both checks run in the mode you pick. In `demand` mode, the default, they run only in a turn whose prompt contains
+the word `TT`, such as "Add retries to the upload client, TT". The next prompt without it runs nothing. In
+`permanent` mode every call and every reply is checked. The note on each prompt runs in both modes.
 
 <br>
 
@@ -99,8 +109,8 @@ task, but the reply does not mention it. Matters of taste do not count.
 
 Sent back with: *TillerTouch (better way): `gofmt -w .` does this in one command and is the obvious tool. Say so.*
 
-The full prompt is in [`hooks/judge-prompt.txt`](hooks/judge-prompt.txt). Claude Code's prompt hook cannot read
-a file, so `node scripts/sync.mjs` writes it into [`hooks/hooks.json`](hooks/hooks.json) and copies it into the
+The full prompts are in [`hooks/judge-prompt.txt`](hooks/judge-prompt.txt) for the reply and
+[`hooks/tool-prompt.txt`](hooks/tool-prompt.txt) for a tool call. `node scripts/sync.mjs` copies them into the
 packages for the other tools.
 
 <br>
@@ -131,8 +141,8 @@ To try it without installing, clone the repository and start Claude Code with `c
 TillerTouch runs in these four as well, with the same note on every prompt and the same three checks from the
 same prompt file. How the check gets made differs.
 
-Qwen Code runs prompt hooks the way Claude Code does, so it takes the Claude Code plugin as it is. Codex CLI,
-Gemini CLI and Factory Droid cannot run prompt hooks. For them,
+Qwen Code reads the Claude Code plugin and gets the note on every prompt. The checks start the `claude` CLI, so
+without it they let everything through. In all four tools,
 [`scripts/tillertouch.mjs`](scripts/tillertouch.mjs) starts a second, headless run of the same CLI with a small
 model, hands it the reply together with the check's prompt, and sends the reply back if the answer says so. That needs Node.js 18 or
 newer on the path. If the second run fails, takes longer than 90 seconds or answers something the script cannot
@@ -140,8 +150,8 @@ read, the reply goes through.
 
 | Tool | Check at the end of the turn | Model for the check | How far it is tested |
 | :- | :- | :- | :- |
-| Claude Code | prompt hook | Haiku, through Claude Code | live, with the samples |
-| Qwen Code | prompt hook | the model of your session | end to end against a stand-in model server |
+| Claude Code | `claude -p` in the hook | `opus`, set with the `model` option | live, with the samples |
+| Qwen Code | none, the note only | none | the note only |
 | Codex CLI | `codex exec` in the hook | `gpt-6-luna`, low reasoning effort | end to end against a stand-in model server |
 | Gemini CLI | `gemini -p` in the hook | `flash-lite` | end to end against a stand-in model server |
 | Factory Droid | `droid exec` in the hook | `claude-haiku-5-5` | install, and the script offline |
@@ -207,6 +217,7 @@ finds no reply, it lets the turn end.
 | :- | :- |
 | `TILLERTOUCH_PROMPT_NUDGE` | `false` stops the note on every prompt. |
 | `TILLERTOUCH_PROMPT_NUDGE_TEXT` | Replaces the wording of the note. |
+| `TILLERTOUCH_MODE` | `demand` runs the check only for a prompt that contains `TT`. Without it, every turn is checked. |
 | `TILLERTOUCH_MODEL` | Uses another model for the second run. |
 | `TILLERTOUCH_TIMEOUT` | Seconds the second run may take, 90 by default. |
 | `TILLERTOUCH_DEBUG` | Writes to stderr why a reply went through, so a failed check can be told from a passed one. |
@@ -218,11 +229,13 @@ The packages for Gemini and Droid install as their own folders, so they carry co
 
 ## 5. Configuration
 
-The prompt note has two options. Change them with `/plugin configure tillertouch@tillertouch`, or in `/config`,
-where every enabled plugin lists its options. Until you set them, the defaults apply.
+Change the options with `/plugin configure tillertouch@tillertouch`, or in `/config`, where every enabled plugin
+lists its options. Until you set them, the defaults apply.
 
 | Option | Default | What it does |
 | :- | :- | :- |
+| `mode` | `demand` | `demand` checks tool calls and the reply only in a turn whose prompt contains `TT`. `permanent` checks every call and every reply. |
+| `model` | `opus` | The model for the checks, for example `opus`, `sonnet` or `haiku`. A smaller one is faster and cheaper but misses more, so it suits `permanent` mode better. |
 | `prompt_nudge` | `true` | Adds the note to every prompt. Set it to `false` to keep only the check at the end of the turn. |
 | `prompt_nudge_text` | empty | Replaces the wording of the note. Empty keeps the default from [`hooks/prompt-nudge.txt`](hooks/prompt-nudge.txt). |
 
@@ -241,8 +254,8 @@ Claude Code stores the answers under `pluginConfigs` in your user settings file:
 }
 ```
 
-The check at the end of the turn has no switch of its own. Prompt hooks cannot read plugin options, and Claude Code
-cannot turn off a single plugin hook, so `/plugin` is the way to pause it.
+To pause the checks completely, set `mode` to `demand` and leave `TT` out of your prompts, or turn the plugin off
+with `/plugin`.
 
 <br>
 
@@ -250,10 +263,12 @@ cannot turn off a single plugin hook, so `/plugin` is the way to pause it.
 
 The note on each prompt costs no model call, only about 80 tokens of context.
 
-The check at the end of the turn is **one small-model call per reply**. TillerTouch does not pick a model: Claude
-Code uses the one it runs background work on, which is Haiku today. The call reads the conversation for context
-along with the reply, so it grows with the session. In a short session one check came to about 1,200 input tokens,
-well under a cent at list price. A reply that goes back adds one follow-up from your main model.
+Every check is **one headless `claude -p` run** on the model from the `model` option, Opus by default. The check at
+the end of the turn sends the reply and your prompt, about 1,000 to 1,500 input tokens. The check before a tool call
+is one run per call and sends the tool name and its input, so a large write costs more. In `demand` mode that
+happens only in turns with `TT`. In `permanent` mode a task with 30 tool calls means 30 runs, each adding the start-up
+of the CLI and a model call to the wait, so a smaller model is the better fit there. A reply or call that goes back
+adds a short follow-up from your main model.
 
 In Codex CLI, Gemini CLI and Factory Droid the check is a second headless run on the small model from the table
 in [section 4](#4-codex-cli-gemini-cli-qwen-code-and-factory-droid), billed to the same account as the session.
@@ -266,14 +281,12 @@ session, which usually costs more than a small one would.
 
 - Claude Code shows a reply while it is being written, so the check cannot hold it back. You see the reply first
   and the follow-up right after it, in the same turn.
-- The check runs on a small model. It will miss some replies and send back a few it should have let through, which
-  is why the prompt tells it to let a reply pass when in doubt.
+- The checks see the reply or the single call, not the whole conversation. A smaller model will miss some and send
+  back a few it should have let through, which is why the prompts tell it to let things pass when in doubt.
 - Only the main conversation is checked, not the reports of subagents.
-- The prompt note runs in a POSIX shell. macOS and Linux always have one, and on Windows Claude Code runs hook
-  commands in Git Bash. Without Git Bash the note is skipped, and the check at the end of the turn still runs.
-- There is no hook after edits. One that looks at larger edits and suggests a missing test or a simpler way sounded
-  useful, but a prompt hook on `PostToolUse` cannot be limited to large changes or switched off by a setting. It
-  would cost a model call and a wait on every edit, small ones included, so I left it out.
+- The hooks need Node.js 18 or newer and the `claude` CLI on the path. Without either, nothing is checked and
+  everything goes through.
+- There is no hook after edits. The check before a call sees what is about to run, not what it did.
 - In Codex CLI, Gemini CLI and Factory Droid the check starts the same CLI a second time, and that start-up comes
   on top of the model call. You wait for both at the end of every turn.
 
@@ -284,7 +297,8 @@ session, which usually costs more than a small one would.
 [`test/run.mjs`](test/run.mjs) starts a headless Claude Code session per sample in
 [`test/samples.json`](test/samples.json), with TillerTouch loaded and your own settings and hooks left out. The
 session repeats the sample as its reply, the check runs on it, and the script prints the decision, the reason and
-the follow-up. It also checks that the prompt note is added, can be switched off and can be reworded.
+the follow-up. It also checks that the prompt note is added, can be switched off and can be reworded. The session
+runs in `permanent` mode on Haiku, so the samples do not depend on the `TT` word.
 
 ```sh
 node test/run.mjs                  # offline checks, then every tool on the path
@@ -296,9 +310,10 @@ It needs Node.js and a logged-in `claude` on the path (`CLAUDE_BIN` points it el
 session on Haiku plus the check, so a full run costs a few cents and takes about a minute.
 
 Before that, the offline checks run the script for the other tools against
-[`test/fake-cli.mjs`](test/fake-cli.mjs), a stand-in for `codex`, `gemini` and `droid`: a reply goes back, a pass
-or a broken answer lets it through, a slow judge times out, a reply is never judged twice, and the second run gets
-the small model and has its own hooks off. They also check that every copy matches the shared files and that each
+[`test/fake-cli.mjs`](test/fake-cli.mjs), a stand-in for `claude`, `codex`, `gemini` and `droid`: a reply goes back,
+a pass or a broken answer lets it through, a slow judge times out, a reply is never judged twice, a tool call is
+denied once and then let through, `demand` mode judges only a prompt with `TT`, and the second run gets the small
+model and has its own hooks off. They also check that every copy matches the shared files and that each
 hook file uses only its own tool's event names. When `codex`, `gemini` or `droid` is on the path, the samples then
 run through the script with the real CLI and your login for it.
 

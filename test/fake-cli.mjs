@@ -1,11 +1,11 @@
-// Stands in for codex, gemini and droid when test/run.mjs checks the judge
+// Stands in for claude, codex, gemini and droid when test/run.mjs checks the judge
 // script offline. FAKE_MODE picks the answer, FAKE_LOG records the call.
 
 import { readFileSync, writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const after = (flag) => args[args.indexOf(flag) + 1];
-const tool = args.includes("--output-schema") ? "codex" : args.includes("-e") ? "gemini" : "droid";
+const tool = args.includes("--setting-sources") ? "claude" : args.includes("--output-schema") ? "codex" : args.includes("-e") ? "gemini" : "droid";
 const prompt = tool === "droid" ? readFileSync(after("-f"), "utf8") : readFileSync(0, "utf8");
 
 if (process.env.FAKE_LOG) {
