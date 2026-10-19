@@ -30,13 +30,15 @@ const blocks = { claude: "block", codex: "block", gemini: "deny", droid: "block"
 const passes = { claude: "", codex: "", gemini: "{}", droid: "" };
 const models = { claude: "opus", codex: "gpt-6-luna", gemini: "flash-lite", droid: "claude-haiku-5-5" };
 
+// The judge tests run in permanent mode; an env value of undefined drops the variable.
 function hook(args, input, env = {}) {
   rmSync(log, { force: true });
-  const run = spawnSync(process.execPath, [script, ...args], {
-    input: JSON.stringify(input),
-    encoding: "utf8",
-    env: { ...process.env, TMPDIR: dir, TEMP: dir, TMP: dir, TILLERTOUCH_CLI: join(root, "test", "fake-cli.mjs"), FAKE_LOG: log, ...env },
-  });
+  const merged = {
+    ...process.env, TMPDIR: dir, TEMP: dir, TMP: dir, TILLERTOUCH_CLI: join(root, "test", "fake-cli.mjs"), FAKE_LOG: log,
+    TILLERTOUCH_MODE: "permanent", ...env,
+  };
+  for (const key of Object.keys(merged)) if (merged[key] === undefined) delete merged[key];
+  const run = spawnSync(process.execPath, [script, ...args], { input: JSON.stringify(input), encoding: "utf8", env: merged });
   const call = existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : undefined;
   return { out: run.stdout, call };
 }
@@ -113,6 +115,13 @@ export function offlineSuite() {
   report(Boolean(hook(["judge", "claude"], { ...quiet, session_id: "offline-never" }, { TILLERTOUCH_MODE: "permanent", FAKE_MODE: "block" }).call),
     "permanent: every reply is judged");
 
+  const unset = { TILLERTOUCH_MODE: undefined };
+  const fresh = { ...inputs.claude, session_id: "offline-unset" };
+  hook(["nudge"], { session_id: "offline-unset", prompt: "Add retries to the upload client." }, unset);
+  report(!hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call, "unset mode: a prompt without TT is not judged");
+  hook(["nudge"], { session_id: "offline-unset", prompt: "Add retries, TT" }, unset);
+  report(Boolean(hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call), "unset mode: a prompt with TT is judged");
+
   const text = hook(["nudge"], {}).out.trim();
   report(text === note, "nudge: prints the default note");
   const json = JSON.parse(hook(["nudge", "--json"], {}).out || "{}");
@@ -122,6 +131,11 @@ export function offlineSuite() {
   report(hook(["nudge"], {}, { TILLERTOUCH_PROMPT_NUDGE_TEXT: "Use the Makefile." }).out.trim() === "Use the Makefile.",
     "nudge: TILLERTOUCH_PROMPT_NUDGE_TEXT replaces the wording");
   report(hook(["nudge"], {}, { TILLERTOUCH_JUDGE: "1" }).out === "", "nudge: the nested run gets no note");
+  const ttNote = hook(["nudge"], { session_id: "offline-note", prompt: "Add retries, TT" }).out;
+  report(ttNote.startsWith(note) && ttNote.includes("TT in this prompt"), "nudge: a prompt with TT says that TT is not part of the task");
+  report(hook(["nudge"], { session_id: "offline-note", prompt: "Add retries." }).out.trim() === note, "nudge: a prompt without TT gets only the note");
+  report(hook(["nudge"], { session_id: "offline-note", prompt: "TT" }, { TILLERTOUCH_PROMPT_NUDGE: "false" }).out.includes("TT in this prompt"),
+    "nudge: the TT line stays when the note is off");
 
   const sync = spawnSync(process.execPath, [join(root, "scripts", "sync.mjs"), "--check"], { encoding: "utf8" });
   report(sync.status === 0, "sync: the packages and the Claude Code prompt match the shared files", [sync.stderr.trim()].filter(Boolean));

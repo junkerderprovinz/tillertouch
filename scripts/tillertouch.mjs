@@ -8,7 +8,8 @@
 // The judge asks the tool's own CLI, in a nested headless run, whether the reply
 // or the call can stand. Anything that goes wrong lets it through.
 //
-// TILLERTOUCH_MODE=demand runs the judge only for a prompt that contains the word TT.
+// The judge runs only for a prompt that contains the word TT, unless
+// TILLERTOUCH_MODE=permanent.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -113,6 +114,7 @@ function rememberPrompt(input) {
   } catch (error) {
     debug(`could not remember the prompt: ${error.message}`);
   }
+  return asked;
 }
 
 function recalled(input) {
@@ -123,14 +125,22 @@ function recalled(input) {
   }
 }
 
+// Without this line the session reads TT as part of the task.
+const askedNote = "The word TT in this prompt is the user's signal for TillerTouch's second look, not part of the task.";
+
 function nudge(json) {
   const input = readStdin();
-  if (!nested) rememberPrompt(input);
-  if (nested || ["false", "0"].includes(option("PROMPT_NUDGE"))) {
+  const asked = !nested && rememberPrompt(input);
+  const lines = [];
+  if (!nested && !["false", "0"].includes(option("PROMPT_NUDGE"))) {
+    lines.push(option("PROMPT_NUDGE_TEXT") || readFileSync(join(hooksDir, "prompt-nudge.txt"), "utf8").trim());
+  }
+  if (asked) lines.push(askedNote);
+  if (!lines.length) {
     if (json) process.stdout.write("{}");
     return;
   }
-  const text = option("PROMPT_NUDGE_TEXT") || readFileSync(join(hooksDir, "prompt-nudge.txt"), "utf8").trim();
+  const text = lines.join("\n");
   process.stdout.write(json
     ? JSON.stringify({ hookSpecificOutput: { hookEventName: "BeforeAgent", additionalContext: text } })
     : `${text}\n`);
@@ -249,7 +259,9 @@ function judge(name) {
     return;
   }
   const remembered = recalled(input);
-  if (option("MODE") === "demand" && !remembered.asked) {
+  // Claude Code passes an option only once it was set, so an unset mode is the
+  // default from plugin.json.
+  if (option("MODE") !== "permanent" && !remembered.asked) {
     debug("demand mode and no TT in this prompt");
     process.stdout.write(tool.pass);
     return;

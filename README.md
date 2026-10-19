@@ -73,7 +73,8 @@ sent back twice.
 
 Both checks run in the mode you pick. In `demand` mode, the default, they run only in a turn whose prompt contains
 the word `TT`, such as "Add retries to the upload client, TT". The next prompt without it runs nothing. In
-`permanent` mode every call and every reply is checked. The note on each prompt runs in both modes.
+`permanent` mode every call and every reply is checked. The note on each prompt runs in both modes, and in a turn
+with `TT` it tells Claude that the word is your signal and not part of the task.
 
 <br>
 
