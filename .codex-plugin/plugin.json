@@ -1,6 +1,6 @@
 {
   "name": "tillertouch",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A second look at every reply. Sends it back once when it names a gap without a way to close it, asks for approval without showing what to approve, or skips a clearly better way. Reminds each prompt to look for a better tool first.",
   "author": {
     "name": "junkerderprovinz",
