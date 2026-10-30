@@ -8,7 +8,7 @@
 // The judge asks the tool's own CLI, in a nested headless run, whether the reply
 // or the call can stand. Anything that goes wrong lets it through.
 //
-// The judge runs only for a prompt that contains the word TT, unless
+// The judge runs only for a prompt that contains the word 2B, unless
 // TILLERTOUCH_MODE=permanent.
 
 import { spawnSync } from "node:child_process";
@@ -108,7 +108,7 @@ function sessionFile(input, name) {
 // this turn asked for it.
 function rememberPrompt(input) {
   const prompt = String(input.prompt ?? "");
-  const asked = /(^|[^A-Za-z0-9])TT([^A-Za-z0-9]|$)/.test(prompt);
+  const asked = /(^|[^A-Za-z0-9])2B([^A-Za-z0-9]|$)/.test(prompt);
   try {
     writeFileSync(sessionFile(input, "prompt.json"), JSON.stringify({ prompt, asked }));
   } catch (error) {
@@ -125,8 +125,8 @@ function recalled(input) {
   }
 }
 
-// Without this line the session reads TT as part of the task.
-const askedNote = "The word TT in this prompt is the user's signal for TillerTouch's second look, not part of the task.";
+// Without this line the session reads 2B as part of the task.
+const askedNote = "The word 2B in this prompt is the user's signal for TillerTouch's second look, not part of the task.";
 
 function nudge(json) {
   const input = readStdin();
@@ -262,7 +262,7 @@ function judge(name) {
   // Claude Code passes an option only once it was set, so an unset mode is the
   // default from plugin.json.
   if (option("MODE") !== "permanent" && !remembered.asked) {
-    debug("demand mode and no TT in this prompt");
+    debug("demand mode and no 2B in this prompt");
     process.stdout.write(tool.pass);
     return;
   }

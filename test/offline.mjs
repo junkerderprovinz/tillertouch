@@ -101,26 +101,26 @@ export function offlineSuite() {
   const demand = { TILLERTOUCH_MODE: "demand" };
   const quiet = { ...inputs.claude, session_id: "offline-demand" };
   hook(["nudge"], { session_id: "offline-demand", prompt: "Add retries to the upload client." }, demand);
-  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: a prompt without TT is not judged");
-  hook(["nudge"], { session_id: "offline-demand", prompt: "Add retries, TT" }, demand);
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: a prompt without 2B is not judged");
+  hook(["nudge"], { session_id: "offline-demand", prompt: "Add retries, 2B" }, demand);
   const asked = hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" });
-  report(asked.call && asked.out.includes("block"), "demand: a prompt with TT is judged");
-  report(asked.call?.prompt.includes("Add retries, TT"), "demand: the judge gets the prompt that asked for it");
+  report(asked.call && asked.out.includes("block"), "demand: a prompt with 2B is judged");
+  report(asked.call?.prompt.includes("Add retries, 2B"), "demand: the judge gets the prompt that asked for it");
   hook(["nudge"], { session_id: "offline-demand", prompt: "Now the tests." }, demand);
-  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: the next prompt without TT is not judged");
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: the next prompt without 2B is not judged");
   hook(["nudge"], { session_id: "offline-demand", prompt: "Switch the ATTIC off, STT is fine" }, demand);
-  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: TT inside another word does not count");
+  report(!hook(["judge", "claude"], quiet, { ...demand, FAKE_MODE: "block" }).call, "demand: 2B inside another word does not count");
   report(hook(["judge", "claude"], { ...quiet, session_id: "offline-never" }, { ...demand, FAKE_MODE: "block" }).call === undefined,
-    "demand: a session that never wrote TT is not judged");
+    "demand: a session that never wrote 2B is not judged");
   report(Boolean(hook(["judge", "claude"], { ...quiet, session_id: "offline-never" }, { TILLERTOUCH_MODE: "permanent", FAKE_MODE: "block" }).call),
     "permanent: every reply is judged");
 
   const unset = { TILLERTOUCH_MODE: undefined };
   const fresh = { ...inputs.claude, session_id: "offline-unset" };
   hook(["nudge"], { session_id: "offline-unset", prompt: "Add retries to the upload client." }, unset);
-  report(!hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call, "unset mode: a prompt without TT is not judged");
-  hook(["nudge"], { session_id: "offline-unset", prompt: "Add retries, TT" }, unset);
-  report(Boolean(hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call), "unset mode: a prompt with TT is judged");
+  report(!hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call, "unset mode: a prompt without 2B is not judged");
+  hook(["nudge"], { session_id: "offline-unset", prompt: "Add retries, 2B" }, unset);
+  report(Boolean(hook(["judge", "claude"], fresh, { ...unset, FAKE_MODE: "block" }).call), "unset mode: a prompt with 2B is judged");
 
   const text = hook(["nudge"], {}).out.trim();
   report(text === note, "nudge: prints the default note");
@@ -131,11 +131,11 @@ export function offlineSuite() {
   report(hook(["nudge"], {}, { TILLERTOUCH_PROMPT_NUDGE_TEXT: "Use the Makefile." }).out.trim() === "Use the Makefile.",
     "nudge: TILLERTOUCH_PROMPT_NUDGE_TEXT replaces the wording");
   report(hook(["nudge"], {}, { TILLERTOUCH_JUDGE: "1" }).out === "", "nudge: the nested run gets no note");
-  const ttNote = hook(["nudge"], { session_id: "offline-note", prompt: "Add retries, TT" }).out;
-  report(ttNote.startsWith(note) && ttNote.includes("TT in this prompt"), "nudge: a prompt with TT says that TT is not part of the task");
-  report(hook(["nudge"], { session_id: "offline-note", prompt: "Add retries." }).out.trim() === note, "nudge: a prompt without TT gets only the note");
-  report(hook(["nudge"], { session_id: "offline-note", prompt: "TT" }, { TILLERTOUCH_PROMPT_NUDGE: "false" }).out.includes("TT in this prompt"),
-    "nudge: the TT line stays when the note is off");
+  const ttNote = hook(["nudge"], { session_id: "offline-note", prompt: "Add retries, 2B" }).out;
+  report(ttNote.startsWith(note) && ttNote.includes("2B in this prompt"), "nudge: a prompt with 2B says that 2B is not part of the task");
+  report(hook(["nudge"], { session_id: "offline-note", prompt: "Add retries." }).out.trim() === note, "nudge: a prompt without 2B gets only the note");
+  report(hook(["nudge"], { session_id: "offline-note", prompt: "2B" }, { TILLERTOUCH_PROMPT_NUDGE: "false" }).out.includes("2B in this prompt"),
+    "nudge: the 2B line stays when the note is off");
 
   const sync = spawnSync(process.execPath, [join(root, "scripts", "sync.mjs"), "--check"], { encoding: "utf8" });
   report(sync.status === 0, "sync: the packages and the Claude Code prompt match the shared files", [sync.stderr.trim()].filter(Boolean));

@@ -18,7 +18,7 @@ A <b>second look</b> at your coding assistant's tool calls and replies.<br>
 Before a tool call runs and before a turn ends, a model looks at it. If the call walks past a clearly better tool, or
 the reply names a gap and leaves it open, asks you to approve something it never showed you, or skips a better
 way, TillerTouch sends it back once with a one-line note and the assistant fixes it. Everything else goes through
-untouched. It runs on every turn, or only when you write <b>TT</b> in your message.<br>
+untouched. It runs on every turn, or only when you write <b>2B</b> in your message.<br>
 <br>
 The name comes from sailing: a light touch on the tiller is enough to bring the boat back on course.
 </p>
@@ -72,9 +72,9 @@ with a short follow-up. A reply that already went back once in a turn always pas
 sent back twice.
 
 Both checks run in the mode you pick. In `demand` mode, the default, they run only in a turn whose prompt contains
-the word `TT`, such as "Add retries to the upload client, TT". The next prompt without it runs nothing. In
+the word `2B`, such as "Add retries to the upload client, 2B". The next prompt without it runs nothing. In
 `permanent` mode every call and every reply is checked. The note on each prompt runs in both modes, and in a turn
-with `TT` it tells Claude that the word is your signal and not part of the task.
+with `2B` it tells Claude that the word is your signal and not part of the task.
 
 <br>
 
@@ -218,7 +218,7 @@ finds no reply, it lets the turn end.
 | :- | :- |
 | `TILLERTOUCH_PROMPT_NUDGE` | `false` stops the note on every prompt. |
 | `TILLERTOUCH_PROMPT_NUDGE_TEXT` | Replaces the wording of the note. |
-| `TILLERTOUCH_MODE` | `demand` runs the check only for a prompt that contains `TT`. Without it, every turn is checked. |
+| `TILLERTOUCH_MODE` | `demand` runs the check only for a prompt that contains `2B`. Without it, every turn is checked. |
 | `TILLERTOUCH_MODEL` | Uses another model for the second run. |
 | `TILLERTOUCH_TIMEOUT` | Seconds the second run may take, 90 by default. |
 | `TILLERTOUCH_DEBUG` | Writes to stderr why a reply went through, so a failed check can be told from a passed one. |
@@ -235,7 +235,7 @@ lists its options. Until you set them, the defaults apply.
 
 | Option | Default | What it does |
 | :- | :- | :- |
-| `mode` | `demand` | `demand` checks tool calls and the reply only in a turn whose prompt contains `TT`. `permanent` checks every call and every reply. |
+| `mode` | `demand` | `demand` checks tool calls and the reply only in a turn whose prompt contains `2B`. `permanent` checks every call and every reply. |
 | `model` | `opus` | The model for the checks, for example `opus`, `sonnet` or `haiku`. A smaller one is faster and cheaper but misses more, so it suits `permanent` mode better. |
 | `prompt_nudge` | `true` | Adds the note to every prompt. Set it to `false` to keep only the check at the end of the turn. |
 | `prompt_nudge_text` | empty | Replaces the wording of the note. Empty keeps the default from [`hooks/prompt-nudge.txt`](hooks/prompt-nudge.txt). |
@@ -255,7 +255,7 @@ Claude Code stores the answers under `pluginConfigs` in your user settings file:
 }
 ```
 
-To pause the checks completely, set `mode` to `demand` and leave `TT` out of your prompts, or turn the plugin off
+To pause the checks completely, set `mode` to `demand` and leave `2B` out of your prompts, or turn the plugin off
 with `/plugin`.
 
 <br>
@@ -267,7 +267,7 @@ The note on each prompt costs no model call, only about 80 tokens of context.
 Every check is **one headless `claude -p` run** on the model from the `model` option, Opus by default. The check at
 the end of the turn sends the reply and your prompt, about 1,000 to 1,500 input tokens. The check before a tool call
 is one run per call and sends the tool name and its input, so a large write costs more. In `demand` mode that
-happens only in turns with `TT`. In `permanent` mode a task with 30 tool calls means 30 runs, each adding the start-up
+happens only in turns with `2B`. In `permanent` mode a task with 30 tool calls means 30 runs, each adding the start-up
 of the CLI and a model call to the wait, so a smaller model is the better fit there. A reply or call that goes back
 adds a short follow-up from your main model.
 
@@ -299,7 +299,7 @@ session, which usually costs more than a small one would.
 [`test/samples.json`](test/samples.json), with TillerTouch loaded and your own settings and hooks left out. The
 session repeats the sample as its reply, the check runs on it, and the script prints the decision, the reason and
 the follow-up. It also checks that the prompt note is added, can be switched off and can be reworded. The session
-runs in `permanent` mode on Haiku, so the samples do not depend on the `TT` word.
+runs in `permanent` mode on Haiku, so the samples do not depend on the `2B` word.
 
 ```sh
 node test/run.mjs                  # offline checks, then every tool on the path
@@ -313,7 +313,7 @@ session on Haiku plus the check, so a full run costs a few cents and takes about
 Before that, the offline checks run the script for the other tools against
 [`test/fake-cli.mjs`](test/fake-cli.mjs), a stand-in for `claude`, `codex`, `gemini` and `droid`: a reply goes back,
 a pass or a broken answer lets it through, a slow judge times out, a reply is never judged twice, a tool call is
-denied once and then let through, `demand` mode judges only a prompt with `TT`, and the second run gets the small
+denied once and then let through, `demand` mode judges only a prompt with `2B`, and the second run gets the small
 model and has its own hooks off. They also check that every copy matches the shared files and that each
 hook file uses only its own tool's event names. When `codex`, `gemini` or `droid` is on the path, the samples then
 run through the script with the real CLI and your login for it.
